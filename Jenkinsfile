@@ -3,20 +3,21 @@ pipeline {
 
     stages {
 
-        stage('Pre-check Docker') {
-            steps {
-                sh '''
-                if ! command -v docker &> /dev/null
-                then
-                    echo "❌ Docker not installed — FAILING PIPELINE"
-                    exit 1
-                else
-                    echo "✔ Docker found:"
-                    docker --version
-                fi
-                '''
-            }
-        }
+      stage('Pre-check Docker') {
+    steps {
+        sh '''
+        if ! command -v docker &> /dev/null
+        then
+            echo "❌ Docker not installed — FAILING PIPELINE"
+            exit 1
+        else
+            echo "✔ Docker is installed"
+            docker --version
+        fi
+        '''
+    }
+}
+
 
         stage('Checkout Code') {
             steps {
