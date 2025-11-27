@@ -3,21 +3,20 @@ pipeline {
 
     stages {
 
-   stage('Pre-check Docker') {
-    steps {
-        sh '''
-        if ! command -v docker &> /dev/null
-        then
-            echo "Docker not installed — FAILING PIPELINE"
-            exit 1
-        else
-            echo "Docker is installed:"
-            docker --version
-        fi
-        '''
-    }
-}
-
+        stage('Pre-check Docker') {
+            steps {
+                sh '''
+                if ! command -v docker &> /dev/null
+                then
+                    echo "❌ Docker not installed — FAILING PIPELINE"
+                    exit 1
+                else
+                    echo "✔ Docker found:"
+                    docker --version
+                fi
+                '''
+            }
+        }
 
         stage('Checkout Code') {
             steps {
@@ -28,7 +27,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                echo "Building image novamart-svc:2"
+                echo "🚀 Building Docker image novamart-svc:2"
                 docker build -t novamart-svc:2 .
                 '''
             }
@@ -37,11 +36,11 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh '''
-                echo "Stopping old container (if exists)..."
+                echo "🛑 Removing old container..."
                 docker stop novamart-svc || true
                 docker rm novamart-svc || true
 
-                echo "Starting new container..."
+                echo "🚀 Running new container on port 12072..."
                 docker run -d -p 12072:5000 --name novamart-svc novamart-svc:2
                 '''
             }
@@ -50,7 +49,10 @@ pipeline {
 
     post {
         success {
-            echo "NovaMart CI Pipeline completed successfully."
+            echo "🎉 Pipeline SUCCESS!"
+        }
+        failure {
+            echo "❌ Pipeline FAILED!"
         }
     }
 }
