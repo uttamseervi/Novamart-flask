@@ -19,11 +19,14 @@ pipeline {
             }
         }
 
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/yourusername/your-flask-repo.git'
-            }
-        }
+      stage('Checkout') {
+    steps {
+        git branch: 'main',
+            url: 'https://github.com/uttamseervi/Novamart-flask.git',
+            credentialsId: 'e4974bdd-8b4a-47fa-aa47-157c58c31966'
+    }
+}
+
 
         stage('Build Docker Image') {
             steps {
