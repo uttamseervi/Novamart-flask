@@ -1,117 +1,59 @@
 pipeline {
     agent any
-    
+
     environment {
-        IMAGE_NAME = 'novamart-svc'
-        IMAGE_TAG = '2'
-        CONTAINER_NAME = 'novamart-container'
-        HOST_PORT = '12072'
-        CONTAINER_PORT = '5000'
+        IMAGE_NAME = 'novamart-svc:2'
+        CONTAINER_NAME = 'novamart-svc-container'
+        PORT = '12072'
     }
-    
+
     stages {
         stage('Pre-check Docker') {
             steps {
                 script {
-                    echo '=== Checking Docker availability ==='
                     def dockerCheck = sh(script: 'docker --version', returnStatus: true)
                     if (dockerCheck != 0) {
-                        error('Docker is not available! Please ensure Docker is installed and Jenkins has permission to access it.')
+                        error "Docker is not available. Please install/start Docker."
                     }
-                    echo 'Docker is available'
-                    
-                    // Check Docker daemon connectivity
-                    def dockerInfo = sh(script: 'docker info', returnStatus: true)
-                    if (dockerInfo != 0) {
-                        error('Cannot connect to Docker daemon! Check if Jenkins user is in docker group.')
-                    }
-                    echo 'Docker daemon is accessible'
                 }
             }
         }
-        
+
         stage('Checkout') {
             steps {
-                echo '=== Checking out repository ==='
-                checkout scm
-                // Alternative: git branch: 'main', url: 'https://github.com/your-repo/novamart-app.git'
+                git branch: 'main', url: 'https://github.com/yourusername/your-flask-repo.git'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo '=== Building Docker image ==='
-                    sh """
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    """
-                    echo "Image ${IMAGE_NAME}:${IMAGE_TAG} built successfully"
+                    sh "docker build -t ${IMAGE_NAME} ."
                 }
             }
         }
-        
-        stage('Stop Old Container') {
+
+        stage('Run Docker Container') {
             steps {
                 script {
-                    echo '=== Stopping and removing old container if exists ==='
-                    sh """
-                        docker stop ${CONTAINER_NAME} 2>/dev/null || true
-                        docker rm ${CONTAINER_NAME} 2>/dev/null || true
-                    """
+                    // Stop and remove any existing container with same name
+                    sh "docker rm -f ${CONTAINER_NAME} || true"
+                    sh "docker run -d -p ${PORT}:${PORT} --name ${CONTAINER_NAME} ${IMAGE_NAME}"
                 }
             }
         }
-        
-        stage('Start Container') {
-            steps {
-                script {
-                    echo '=== Starting new container ==='
-                    sh """
-                        docker run -d \
-                            --name ${CONTAINER_NAME} \
-                            -p ${HOST_PORT}:${CONTAINER_PORT} \
-                            ${IMAGE_NAME}:${IMAGE_TAG}
-                    """
-                    echo "Container started on port ${HOST_PORT}"
-                }
-            }
-        }
-        
+
         stage('Verify Container') {
             steps {
-                script {
-                    echo '=== Verifying container is running ==='
-                    sh """
-                        docker ps | grep ${CONTAINER_NAME}
-                    """
-                    
-                    echo '=== Checking port binding ==='
-                    sh """
-                        netstat -tuln | grep ${HOST_PORT} || ss -tuln | grep ${HOST_PORT}
-                    """
-                    
-                    echo '=== Testing HTTP endpoint ==='
-                    sleep 3  // Give the app a moment to start
-                    sh """
-                        curl -f http://localhost:${HOST_PORT}/ || echo "Warning: HTTP test failed"
-                    """
-                }
+                sh "docker ps | grep ${CONTAINER_NAME}"
+                sh "curl -s http://localhost:${PORT} || echo 'Flask service not responding'"
             }
         }
     }
-    
+
     post {
-        success {
-            echo '=== Pipeline completed successfully ==='
-            echo "NovaMart service is running at http://localhost:${HOST_PORT}"
-        }
         failure {
-            echo '=== Pipeline failed ==='
-            script {
-                sh """
-                    docker logs ${CONTAINER_NAME} 2>/dev/null || echo "No container logs available"
-                """
-            }
+            echo "Pipeline failed."
         }
     }
 }
