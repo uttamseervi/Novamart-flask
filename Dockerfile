@@ -1,17 +1,15 @@
-# Use a small, supported Python base
-FROM python:3.11-slim
+FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install pip deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app
-COPY . .
+COPY app.py .
 
-# Expose container port (Flask default)
 EXPOSE 5000
 
-# Run the Flask app
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:5000/health')" || exit 1
+
 CMD ["python", "app.py"]
